@@ -2,10 +2,31 @@ open Ast
 
 exception NoRuleApplies
 
+module StringSet = Set.Make(String)
+
+let rec free_vars e =
+  match e with
+  | Var v -> StringSet.singleton v
+  | Lam (v, e1) -> StringSet.remove v (free_vars e1)
+  | App (e1, e2) -> StringSet.union (free_vars e1) (free_vars e2)
+
+let alpha_rename =
+  let counter = ref 0 in
+  fun () -> incr counter; "$x" ^ string_of_int !counter
+
+(* Capture avoiding substitution: e[s/x] = e[s substituted for x] = Substitute s for all free occurrences of x in e *)
 let rec subst e s x =
   match e with
   | Var y -> if x=y then s else e
-  | Lam (y, e1) -> if x=y then Lam (y, e1) else Lam (y, subst e1 s x)
+  | Lam (y, e1) -> 
+      if x=y then 
+        Lam (y, e1) 
+      else if not (StringSet.mem y (free_vars s)) then 
+        Lam (y, subst e1 s x) 
+      else 
+        let renamed_y = alpha_rename () in
+        let renamed_e1 = subst e1 (Var renamed_y) y in
+        Lam (renamed_y, subst renamed_e1 s x)
   | App (e1, e2) -> App (subst e1 s x, subst e2 s x)
 
 let rec step e =
