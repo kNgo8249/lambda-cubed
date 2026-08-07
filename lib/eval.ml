@@ -36,18 +36,37 @@ let rec subst e s x =
         Lam (renamed_y, subst renamed_e1 s x)
   | App (e1, e2) -> App (subst e1 s x, subst e2 s x)
 
-let rec step e =
+type eval_strat = CallByName | CallByValue
+
+let is_val e =
+  match e with
+  | Lam _ -> true
+  | _ -> false
+
+let rec step_cbn e =
   match e with
   | App (Lam (v, e1), e2) -> subst e1 e2 v
-  | App (e1, e2) -> App (step e1, e2)
+  | App (e1, e2) -> App (step_cbn e1, e2) 
   | _ -> raise NoRuleApplies
 
-let rec eval e =
-  try let e' = step e
-    in eval e'
+let rec step_cbv e =
+  match e with
+  | App (Lam (v, e1), v2) when is_val v2 -> subst e1 v2 v
+  | App (v1, e2) when is_val v1 -> App (v1, step_cbv e2) 
+  | App (e1, e2) -> App (step_cbv e1, e2)
+  | _ -> raise NoRuleApplies
+
+let rec step strat e =
+  match strat with 
+  | CallByName -> step_cbn e
+  | CallByValue -> step_cbv e
+
+let rec eval strat e =
+  try let e' = step strat e
+    in eval strat e'
   with NoRuleApplies -> e
 
-let rec eval_print_steps e =
-  try let e' = step e
-    in print_endline (string_of_expr e'); eval_print_steps e'
+let rec eval_print_steps strat e =
+  try let e' = step strat e
+    in print_endline (string_of_expr e'); eval_print_steps strat e'
   with NoRuleApplies -> e
