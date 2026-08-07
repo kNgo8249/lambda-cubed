@@ -14,7 +14,7 @@ let () =
 
   print_endline ("\nSTEP BY STEP EVALUATION:");
   print_endline ("Original term: " ^ string_of_expr test_term);
-  print_endline ("Reduced term: " ^ string_of_expr (eval_print_steps CallByName test_term));
+  print_endline ("Reduced term: " ^ string_of_expr (eval CallByName test_term ~f:(fun e -> print_endline (string_of_expr e))));
 
   print_endline ("\nCAPTURE AVOIDING SUBSTITUTION:");
   print_endline ("Original term: " ^ string_of_expr cas_test);
@@ -26,4 +26,4 @@ let () =
   print_endline ("Reduced term: " ^ string_of_expr (eval CallByName diverge_test));
   print_endline ("cbv (should diverge)");
   print_endline ("Original term: " ^ string_of_expr diverge_test);
-  print_endline ("Reduced term: " ^ string_of_expr (eval_print_steps CallByValue diverge_test))
+  print_endline ("Reduced term: " ^ string_of_expr (eval CallByValue diverge_test))

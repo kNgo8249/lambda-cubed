@@ -61,12 +61,7 @@ let rec step strat e =
   | CallByName -> step_cbn e
   | CallByValue -> step_cbv e
 
-let rec eval strat e =
-  try let e' = step strat e
-    in eval strat e'
-  with NoRuleApplies -> e
-
-let rec eval_print_steps strat e =
-  try let e' = step strat e
-    in print_endline (string_of_expr e'); eval_print_steps strat e'
+let rec eval strat ?(f=fun x -> ()) e =
+  try let e' = step strat e 
+    in f e'; eval strat e' ~f
   with NoRuleApplies -> e
