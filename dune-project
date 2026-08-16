@@ -1,4 +1,5 @@
 (lang dune 3.23)
+(using menhir 3.0)
 
 (name lambda-cubed)
 
@@ -19,7 +20,9 @@
  (name lambda-cubed)
  (synopsis "A short synopsis")
  (description "A longer description")
- (depends ocaml)
+ (depends 
+  (ocaml (>= 4.14)) 
+  menhir)
  (tags
   ("add topics" "to describe" your project)))
 
