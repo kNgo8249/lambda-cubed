@@ -1,19 +1,31 @@
 %{
     open Ast
+    open Syntax
 %}
 
 %token LAMBDA
 %token<string> ID
+%token<string> STRING
 %token DOT
 %token LPAREN
 %token RPAREN
+%token IMPORT
+%token EQUALS
+%token SEMICOLON
 %token EOF
 
-%start <Ast.expr> prog
+%start <Syntax.stmt list> prog
 %%
 
 prog:
-    | e = expr; EOF { e }
+    | stmts = list(stmt); EOF { stmts }
+    ;
+
+stmt:
+    | e = expr; SEMICOLON { Eval e }
+    | IMPORT; filename = STRING; SEMICOLON { Import filename }
+    | name = ID; EQUALS; e = expr; SEMICOLON { Def (name, e) }
+    ;
 
 expr:
     | e = abs { e }

@@ -31,20 +31,34 @@ let test_eval () =
 
 let parse s =
   let lexbuf = Lexing.from_string s in
-  let ast = Parser.prog Lexer.read lexbuf in
-  ast
+  let stmts = Parser.prog Lexer.read lexbuf in
+  stmts
+
+let statement_as_string stmt =
+  match stmt with
+  | Syntax.Eval expression -> string_of_expr expression ^ ";"
+  | Syntax.Import file -> "import \"" ^ file ^ "\";"
+  | Syntax.Def (name, expression) -> name ^ " = " ^ string_of_expr expression ^ ";"
+
+let rec statements_as_strings stmts =
+  match stmts with
+  | [] -> ""
+  | stmt::rest -> statement_as_string stmt ^ "\n" ^ statements_as_strings rest
 
 let test_parsing () =
-  print_endline (string_of_expr (parse "a b c"));
-  print_endline (string_of_expr (parse "\\x.x y"));
+  print_endline (statements_as_strings (parse "a b c;"));
+  print_endline (statements_as_strings (parse "\\x.x y;"));
 
-  print_endline (string_of_expr (parse "(((λx.(λy.(x y))) (λy.y)) (λz.z))"));
-  print_endline (string_of_expr (parse "(((\\x.(\\y.(x y))) (\\y.y)) (\\z.z))"));
-  print_endline (string_of_expr (parse "(((lambda x.(lambda y.(x y))) (lambda y.y)) (lambda z.z))"));
+  print_endline (statements_as_strings (parse "(((λx.(λy.(x y))) (λy.y)) (λz.z));"));
+  print_endline (statements_as_strings (parse "(((\\x.(\\y.(x y))) (\\y.y)) (\\z.z));"));
+  print_endline (statements_as_strings (parse "(((lambda x.(lambda y.(x y))) (lambda y.y)) (lambda z.z));"));
   
-  print_endline (string_of_expr (parse "\\x     .       x"));
-  print_endline (string_of_expr (parse "\\x\t.\tx"));
-  print_endline (string_of_expr (parse "\\\nx.x"))
+  print_endline (statements_as_strings (parse "\\x     .       x;"));
+  print_endline (statements_as_strings (parse "\\x\t.\tx;"));
+  print_endline (statements_as_strings (parse "\\\nx.x;"));
+
+  let test_prog = "import \"test.lc\";\nzero = \\x.x;\n\\x.\\y.x y;  \\z.z\t;\t\t\\a.a;" in
+  print_endline (statements_as_strings (parse test_prog))
 
 let () =
   (*test_eval ();*)
