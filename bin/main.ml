@@ -21,8 +21,40 @@ let speclist =
     ("--strat", Arg.String select_strat, "  Evaluation strategy: cbv or cbn (default: cbn)")
   ]
 
+let run_stmt stmt =
+  match stmt with
+  | Syntax.Eval expression -> print_endline ("==> " ^ Ast.string_of_expr (Eval.eval !strategy expression))
+  | Syntax.Import file -> print_endline ("Importing file " ^ file)
+  | Syntax.Def (name, expression) -> print_endline ("Defining " ^ name ^ " as " ^ Ast.string_of_expr expression)
+
+let rec run stmts =
+  match stmts with
+  | [] -> ()
+  | stmt::rest -> run_stmt stmt; run rest
+
 let rec run_repl () =
-  print_endline "λ> "
+  print_string "λ> ";
+  let line = read_line () in
+  if String.trim line = "" then
+    run_repl ()
+  else begin
+    let rec read_to_semicolon buffer =
+      let trimmed = String.trim buffer in
+      if String.ends_with ~suffix:";" trimmed then 
+        buffer
+      else begin
+        print_string "...";
+        let next_line = read_line() in
+        read_to_semicolon (buffer ^ "\n" ^ next_line)
+      end
+    in
+    let full_input = read_to_semicolon line in
+    let lexbuf = Lexing.from_string full_input in
+    let prog = Parser.prog Lexer.read lexbuf in
+    run prog;
+
+    run_repl ()
+  end
 
 let run_file filename =
   print_endline ("Run file: " ^ filename)
