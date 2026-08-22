@@ -2,6 +2,7 @@ open Lambda_cubed
 
 let strategy = ref Eval.CallByName
 let file_to_run = ref None
+let trace_term = ref true
 
 let usage_msg = "Usage: lambda-cubed [options]\n       lambda-cubed [options] <filename>\n\nOptions:"
 
@@ -23,7 +24,11 @@ let speclist =
 
 let run_stmt stmt =
   match stmt with
-  | Syntax.Eval expression -> print_endline ("==> " ^ Ast.string_of_expr (Eval.eval !strategy expression))
+  | Syntax.Eval expression -> print_endline ("==> " ^ Ast.string_of_expr (Eval.eval !strategy expression ?f:(
+    if !trace_term then 
+      Some (fun e -> print_endline ("  --> " ^ Ast.string_of_expr e))
+    else 
+      None)))
   | Syntax.Import file -> print_endline ("Importing file " ^ file)
   | Syntax.Def (name, expression) -> print_endline ("Defining " ^ name ^ " as " ^ Ast.string_of_expr expression)
 
