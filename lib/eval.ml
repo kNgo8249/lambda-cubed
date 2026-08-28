@@ -62,6 +62,6 @@ let rec step strat e =
   | CallByValue -> step_cbv e
 
 let rec eval strat ?(f=fun x -> ()) e =
-  try let e' = step strat e 
-    in f e'; eval strat e' ~f
-  with NoRuleApplies -> e
+  match step strat e with
+  | e' -> f e'; eval strat e' ~f
+  | exception NoRuleApplies -> e
