@@ -22,6 +22,27 @@ let speclist =
     ("--strat", Arg.String select_strat, "  Evaluation strategy: cbv or cbn (default: cbn)")
   ]
 
+let get_pos lexbuf =
+  let pos = lexbuf.Lexing.lex_start_p in
+  let fname = if pos.pos_fname = "" then "<stdin>" else pos.pos_fname in
+  (fname, string_of_int pos.pos_lnum, string_of_int (pos.pos_cnum - pos.pos_bol + 1))
+
+let parse_with_error lexbuf =
+  try 
+    Some (Parser.prog Lexer.read lexbuf)
+  with
+  | Lexer.LexicalError msg -> 
+    let (fname, lnum, col) = get_pos lexbuf in
+    prerr_endline ("Error: " ^ msg ^ " in " ^ fname ^ " on line " ^ lnum ^ " at character " ^ col); None
+  | Parser.Error -> 
+    let (fname, lnum, col) = get_pos lexbuf in
+    prerr_endline ("Error: Syntax error in " ^ fname ^ " on line " ^ lnum ^ " at character " ^ col); None
+
+let parse_file filename =
+  let lexbuf = Lexing.from_channel (open_in filename) in
+  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
+  parse_with_error lexbuf
+
 let run_stmt stmt =
   match stmt with
   | Syntax.Eval expression -> print_endline ("==> " ^ Ast.string_of_expr (Eval.eval !strategy expression ?f:(
@@ -55,14 +76,17 @@ let rec run_repl () =
     in
     let full_input = read_to_semicolon line in
     let lexbuf = Lexing.from_string full_input in
-    let prog = Parser.prog Lexer.read lexbuf in
-    run prog;
+    (match parse_with_error lexbuf with
+    | Some prog -> run prog
+    | None -> ());
 
     run_repl ()
   end
 
 let run_file filename =
-  print_endline ("Run file: " ^ filename)
+  match parse_file filename with
+  | Some prog -> run prog
+  | None -> exit 1
 
 let () = 
   Arg.parse speclist anon_fun usage_msg;

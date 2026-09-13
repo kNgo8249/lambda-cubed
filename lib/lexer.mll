@@ -1,7 +1,7 @@
 {
     open Parser
 
-    exception SyntaxError of string
+    exception LexicalError of string
 }
 
 let white = [' ' '\t']+
@@ -20,7 +20,7 @@ rule read = parse
     | id { ID (Lexing.lexeme lexbuf) }
     | "(" { LPAREN }
     | ")" { RPAREN }
-    | _ { raise (SyntaxError ("Unexpected character: " ^ Lexing.lexeme lexbuf)) }
+    | _ { raise (LexicalError ("Unexpected character: " ^ Lexing.lexeme lexbuf)) }
     | eof { EOF }
 
 and read_string buf = parse
@@ -33,5 +33,5 @@ and read_string buf = parse
     | '\\' 'r'  { Buffer.add_char buf '\r'; read_string buf lexbuf }
     | '\\' 't'  { Buffer.add_char buf '\t'; read_string buf lexbuf }
     | [^ '"' '\\']+{ Buffer.add_string buf (Lexing.lexeme lexbuf); read_string buf lexbuf }
-    | _ { raise (SyntaxError ("Illegal character: " ^ Lexing.lexeme lexbuf)) }
-    | eof { raise (SyntaxError ("Unterminated filename")) }
+    | _ { raise (LexicalError ("Illegal character: " ^ Lexing.lexeme lexbuf)) }
+    | eof { raise (LexicalError ("Unterminated filename")) }
