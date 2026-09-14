@@ -40,5 +40,6 @@ and read_string buf = parse
 and comment depth = parse
     | "(*" { comment (depth + 1) lexbuf}
     | "*)" { if depth = 0 then read lexbuf else comment (depth - 1) lexbuf }
+    | newline { Lexing.new_line lexbuf; comment depth lexbuf }
     | _ { comment depth lexbuf }
     | eof { raise (LexicalError ("Unterminated comment")) }
