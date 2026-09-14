@@ -20,6 +20,7 @@ rule read = parse
     | id { ID (Lexing.lexeme lexbuf) }
     | "(" { LPAREN }
     | ")" { RPAREN }
+    | "(*" { comment 0 lexbuf }
     | _ { raise (LexicalError ("Unexpected character: " ^ Lexing.lexeme lexbuf)) }
     | eof { EOF }
 
@@ -35,3 +36,9 @@ and read_string buf = parse
     | [^ '"' '\\']+{ Buffer.add_string buf (Lexing.lexeme lexbuf); read_string buf lexbuf }
     | _ { raise (LexicalError ("Illegal character: " ^ Lexing.lexeme lexbuf)) }
     | eof { raise (LexicalError ("Unterminated filename")) }
+
+and comment depth = parse
+    | "(*" { comment (depth + 1) lexbuf}
+    | "*)" { if depth = 0 then read lexbuf else comment (depth - 1) lexbuf }
+    | _ { comment depth lexbuf }
+    | eof { raise (LexicalError ("Unterminated comment")) }
