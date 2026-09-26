@@ -27,36 +27,67 @@ let get_pos lexbuf =
   let fname = if pos.pos_fname = "" then "<stdin>" else pos.pos_fname in
   (fname, string_of_int pos.pos_lnum, string_of_int (pos.pos_cnum - pos.pos_bol + 1))
 
+let red = "\x1b[38;5;9m"
+let bold = "\x1b[1m"
+let reset = "\x1b[0m"
+
 let parse_with_error lexbuf =
   try 
     Some (Parser.prog Lexer.read lexbuf)
   with
   | Lexer.LexicalError msg -> 
     let (fname, lnum, col) = get_pos lexbuf in
-    prerr_endline ("Error: " ^ msg ^ " in " ^ fname ^ " on line " ^ lnum ^ " at character " ^ col); None
+    prerr_endline (bold ^ red ^ "Error: " ^ reset ^ msg ^ " in " ^ fname ^ " on line " ^ lnum ^ " at character " ^ col); None
   | Parser.Error -> 
     let (fname, lnum, col) = get_pos lexbuf in
-    prerr_endline ("Error: Syntax error in " ^ fname ^ " on line " ^ lnum ^ " at character " ^ col); None
+    prerr_endline (bold ^ red ^ "Error:" ^ reset ^ " Syntax error in " ^ fname ^ " on line " ^ lnum ^ " at character " ^ col); None
 
 let parse_file filename =
-  let lexbuf = Lexing.from_channel (open_in filename) in
+  let ic = open_in filename in
+  let lexbuf = Lexing.from_channel ic in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
-  parse_with_error lexbuf
+  let result = parse_with_error lexbuf in
+  close_in ic;
+  result
 
-let run_stmt stmt =
-  match stmt with
-  | Syntax.Eval expression -> print_endline ("==> " ^ Ast.string_of_expr (Eval.eval !strategy expression ?f:(
+let run_command cmd =
+  match cmd with
+  | Syntax.Eval expression -> print_endline ("==> " ^ Syntax.string_of_expr (Eval.eval !strategy expression ?f:(
     if !trace_term then 
-      Some (fun e -> print_endline ("  --> " ^ Ast.string_of_expr e))
+      Some (fun e -> print_endline ("  --> " ^ Syntax.string_of_expr e))
     else 
       None)))
   | Syntax.Import file -> print_endline ("Importing file " ^ file)
-  | Syntax.Def (name, expression) -> print_endline ("Defining " ^ name ^ " as " ^ Ast.string_of_expr expression)
+  | Syntax.Def (name, expression) -> print_endline ("Defining " ^ name ^ " as " ^ Syntax.string_of_expr expression)
 
-let rec run stmts =
-  match stmts with
+let rec run cmds =
+  match cmds with
   | [] -> ()
-  | stmt::rest -> run_stmt stmt; run rest
+  | cmd::rest -> run_command cmd; run rest
+
+let rec ends_with_semi lexbuf prev_token =
+  match Lexer.read lexbuf with
+  | Parser.EOF -> 
+    begin match prev_token with
+    | Some Parser.SEMICOLON -> true
+    | _ -> false
+    end
+  | token -> ends_with_semi lexbuf (Some token)
+  | exception Lexer.LexicalError msg -> 
+    begin match msg with
+    | "Unterminated filename" | "Unterminated comment" -> false
+    | _ -> true
+    end
+
+let rec read_to_semicolon buffer =
+  let trimmed = String.trim buffer in
+  if String.ends_with ~suffix:";" trimmed then 
+    buffer
+  else begin
+    print_string "...";
+    let next_line = read_line() in
+    read_to_semicolon (buffer ^ "\n" ^ next_line)
+  end
 
 let rec run_repl () =
   print_string "λ> ";
@@ -64,16 +95,6 @@ let rec run_repl () =
   if String.trim line = "" then
     run_repl ()
   else begin
-    let rec read_to_semicolon buffer =
-      let trimmed = String.trim buffer in
-      if String.ends_with ~suffix:";" trimmed then 
-        buffer
-      else begin
-        print_string "...";
-        let next_line = read_line() in
-        read_to_semicolon (buffer ^ "\n" ^ next_line)
-      end
-    in
     let full_input = read_to_semicolon line in
     let lexbuf = Lexing.from_string full_input in
     (match parse_with_error lexbuf with

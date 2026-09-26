@@ -1,5 +1,4 @@
 %{
-    open Ast
     open Syntax
 %}
 
@@ -14,7 +13,7 @@
 %token SEMICOLON
 %token EOF
 
-%start <Syntax.stmt list> prog
+%start <Syntax.command list> prog
 %%
 
 prog:
