@@ -65,20 +65,6 @@ let rec run cmds =
   | [] -> ()
   | cmd::rest -> run_command cmd; run rest
 
-let rec ends_with_semi lexbuf prev_token =
-  match Lexer.read lexbuf with
-  | Parser.EOF -> 
-    begin match prev_token with
-    | Some Parser.SEMICOLON -> true
-    | _ -> false
-    end
-  | token -> ends_with_semi lexbuf (Some token)
-  | exception Lexer.LexicalError msg -> 
-    begin match msg with
-    | "Unterminated filename" | "Unterminated comment" -> false
-    | _ -> true
-    end
-
 let rec read_to_semicolon buffer =
   let trimmed = String.trim buffer in
   if String.ends_with ~suffix:";" trimmed then 
