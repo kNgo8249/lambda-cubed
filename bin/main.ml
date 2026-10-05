@@ -74,7 +74,7 @@ let run_command defs cmd =
       let expanded = expand_defs defs expression in
       let value = eval_expr expanded in
       print_endline (name ^ " = " ^ Syntax.string_of_expr value); 
-      defs @ [(name, value)]
+      (name, value)::defs
 
 let rec run defs cmds =
   match cmds with
