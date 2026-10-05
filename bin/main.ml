@@ -53,7 +53,14 @@ let parse_file filename =
 let rec expand_defs defs e =
   match defs with
   | [] -> e
-  | (name, value)::rest -> expand_defs rest (Eval.subst e value name)
+  | (name, value)::rest -> 
+      let e' =
+        if Eval.StringSet.mem name (Eval.free_vars e) then
+          Eval.subst e value name
+        else 
+          e
+      in
+      expand_defs rest e'
 
 let eval_expr e =
   Eval.eval !strategy e ?f:(

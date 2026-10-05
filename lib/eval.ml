@@ -10,28 +10,25 @@ let rec free_vars e =
   | Lam (v, e1) -> StringSet.remove v (free_vars e1)
   | App (e1, e2) -> StringSet.union (free_vars e1) (free_vars e2)
 
-let var_counters = Hashtbl.create 100
+let rec rename name used =
+  if StringSet.mem name used then
+    rename (name ^ "'") used
+  else
+    name
 
-let alpha_rename v =
-  let v_ctr = 
-    match Hashtbl.find_opt var_counters v with
-    | None -> 0
-    | Some ctr -> ctr + 1 
-  in 
-  Hashtbl.replace var_counters v v_ctr;
-  v ^ "$" ^ string_of_int v_ctr
-
-(* Capture avoiding substitution: e[s/x] = e[s substituted for x] = Substitute s for all free occurrences of x in e *)
+(* Capture avoiding substitution: e[s/x] = e[s substituted for x] = Replace all free occurences of x with s in e *)
 let rec subst e s x =
   match e with
   | Var y -> if x=y then s else e
   | Lam (y, e1) -> 
+      let free_in_s = free_vars s in
       if x=y then 
-        Lam (y, e1) 
-      else if not (StringSet.mem y (free_vars s)) then 
+        e
+      else if not (StringSet.mem y free_in_s) then 
         Lam (y, subst e1 s x) 
       else 
-        let renamed_y = alpha_rename y in
+        let used = StringSet.union (free_vars e1) (StringSet.union free_in_s (StringSet.singleton x)) in
+        let renamed_y = rename y used in
         let renamed_e1 = subst e1 (Var renamed_y) y in
         Lam (renamed_y, subst renamed_e1 s x)
   | App (e1, e2) -> App (subst e1 s x, subst e2 s x)
