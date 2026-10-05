@@ -2,7 +2,7 @@ open Lambda_cubed
 
 let strategy = ref Eval.CallByName
 let file_to_run = ref None
-let trace_term = ref true
+let trace_term = ref false
 
 let usage_msg = "Usage: lambda-cubed [options]\n       lambda-cubed [options] <filename>\n\nOptions:"
 

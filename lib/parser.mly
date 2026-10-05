@@ -17,10 +17,10 @@
 %%
 
 prog:
-    | stmts = list(stmt); EOF { stmts }
+    | commands = list(command); EOF { commands }
     ;
 
-stmt:
+command:
     | e = expr; SEMICOLON { Eval e }
     | IMPORT; filename = STRING; SEMICOLON { Import filename }
     | name = ID; EQUALS; e = expr; SEMICOLON { Def (name, e) }
